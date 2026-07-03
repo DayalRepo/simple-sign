@@ -13,7 +13,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
     <div className="flex min-h-screen flex-col bg-background">
       <header className="flex items-center justify-center px-6 pt-8 sm:pt-10">
         <Link to="/" className="inline-flex items-center gap-2">
-          <span className="font-display text-xl tracking-tight">Lumen</span>
+          <span className="font-display text-xl tracking-tight">Orbit AI</span>
         </Link>
       </header>
 
@@ -35,10 +35,6 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
           ) : null}
         </div>
       </main>
-
-      <footer className="px-6 pb-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Lumen
-      </footer>
     </div>
   );
 }

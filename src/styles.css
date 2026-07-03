@@ -138,3 +138,9 @@
     letter-spacing: -0.02em;
   }
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
