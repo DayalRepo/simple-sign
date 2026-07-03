@@ -5,19 +5,20 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 
 import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthSkeleton } from "@/components/auth/AuthSkeleton";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const searchSchema = z.object({
-  flow: z.enum(["sign-in", "sign-up", "reset"]).optional().default("sign-in"),
+  flow: z.enum(["sign-in", "sign-up"]).optional().default("sign-in"),
 });
 
 export const Route = createFileRoute("/verify-otp")({
   head: () => ({
     meta: [
-      { title: "Verify your code — Lumen" },
+      { title: "Verify your code — Orbit AI" },
       { name: "description", content: "Enter the 6-digit verification code we sent you." },
-      { property: "og:title", content: "Verify your code — Lumen" },
+      { property: "og:title", content: "Verify your code — Orbit AI" },
       {
         property: "og:description",
         content: "Enter the 6-digit verification code we sent you.",
@@ -29,10 +30,15 @@ export const Route = createFileRoute("/verify-otp")({
 });
 
 function VerifyOtpPage() {
-  const { flow } = Route.useSearch();
   const navigate = useNavigate();
   const [code, setCode] = React.useState("");
   const [cooldown, setCooldown] = React.useState(30);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 700);
+    return () => clearTimeout(t);
+  }, []);
 
   React.useEffect(() => {
     if (cooldown <= 0) return;
@@ -46,13 +52,8 @@ function VerifyOtpPage() {
       toast.error("Enter the full 6-digit code");
       return;
     }
-    if (flow === "reset") {
-      toast.success("Code verified");
-      navigate({ to: "/reset-password" });
-    } else {
-      toast.success("You're verified", { description: "Welcome to Lumen." });
-      navigate({ to: "/sign-in" });
-    }
+    toast.success("You're verified", { description: "Welcome to Orbit AI." });
+    navigate({ to: "/sign-in" });
   };
 
   const resend = () => {
@@ -61,10 +62,12 @@ function VerifyOtpPage() {
     setCooldown(30);
   };
 
+  if (loading) return <AuthSkeleton />;
+
   return (
     <AuthShell
       title="Enter verification code"
-      subtitle="We sent a 6-digit code to your email or phone. It expires in 10 minutes."
+      subtitle="We sent a 6-digit code to your phone. It expires in 10 minutes."
       footer={
         <Link
           to="/sign-in"
