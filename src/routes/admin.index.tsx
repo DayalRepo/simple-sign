@@ -1,15 +1,12 @@
 import * as React from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
+  ArrowRight,
   Building2,
+  MoreHorizontal,
   Plus,
   Search,
-  Settings,
-  LogOut,
-  User,
-  Phone,
-  MoreHorizontal,
   Users,
 } from "lucide-react";
 
@@ -28,20 +25,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CountryCodeSelect, COUNTRIES, type Country } from "@/components/auth/CountryCodeSelect";
-
-interface Organization {
-  id: string;
-  name: string;
-  directorName: string;
-  directorDial: string;
-  directorPhone: string;
-  createdAt: number;
-}
+import { orgsStore, useOrgs, type Organization } from "@/lib/orgs-store";
+import { formatRelative } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -52,120 +41,82 @@ export const Route = createFileRoute("/admin/")({
       { property: "og:description", content: "Manage organizations and directors." },
     ],
   }),
-  component: AdminPage,
+  component: AdminIndex,
 });
 
-const seed: Organization[] = [
-  {
-    id: "seed-1",
-    name: "Northwind Labs",
-    directorName: "Ava Chen",
-    directorDial: "+1",
-    directorPhone: "415 555 0132",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3,
-  },
-  {
-    id: "seed-2",
-    name: "Helios Studio",
-    directorName: "Marco Ruiz",
-    directorDial: "+34",
-    directorPhone: "612 47 88 21",
-    createdAt: Date.now() - 1000 * 60 * 60 * 20,
-  },
-];
-
-function AdminPage() {
-  const navigate = useNavigate();
-  const [orgs, setOrgs] = React.useState<Organization[]>(seed);
+function AdminIndex() {
+  const orgs = useOrgs();
   const [query, setQuery] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
 
-  const filtered = orgs.filter(
-    (o) =>
-      o.name.toLowerCase().includes(query.toLowerCase()) ||
-      o.directorName.toLowerCase().includes(query.toLowerCase()),
-  );
-
-  const handleSignOut = () => {
-    toast.success("Signed out");
-    navigate({ to: "/sign-in" });
-  };
-
-  const handleCreate = (org: Organization) => {
-    setOrgs((prev) => [org, ...prev]);
-    toast.success("Organization created", { description: `${org.name} is ready to go.` });
-    setCreateOpen(false);
-  };
+  const filtered = orgs.filter((o) => {
+    const t = query.toLowerCase();
+    return (
+      o.name.toLowerCase().includes(t) ||
+      o.directors.some((d) => d.name.toLowerCase().includes(t))
+    );
+  });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <span className="font-display text-xl tracking-tight">Orbit AI</span>
-            <span className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground sm:inline">
-              / Admin
-            </span>
-          </div>
-
-          <SettingsMenu onSignOut={handleSignOut} />
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-light tracking-tight sm:text-4xl">
+            Organizations
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Create organizations and assign managing directors to each.
+          </p>
         </div>
-      </header>
+        <Button onClick={() => setCreateOpen(true)} className="h-10 gap-2 self-start sm:self-auto">
+          <Plus className="size-4" />
+          New organization
+        </Button>
+      </div>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-light tracking-tight sm:text-4xl">
-              Organizations
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Create organizations and assign a managing director to each.
-            </p>
-          </div>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="h-10 gap-2 self-start sm:self-auto"
-          >
-            <Plus className="size-4" />
-            New organization
-          </Button>
+      <div className="mt-8 flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search organizations or directors"
+            className="h-10 pl-9"
+          />
         </div>
-
-        <div className="mt-8 flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search organizations or directors"
-              className="h-10 pl-9"
-            />
-          </div>
-          <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
-            <Users className="size-4" />
-            {orgs.length} total
-          </div>
+        <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+          <Users className="size-4" />
+          {orgs.length} total
         </div>
+      </div>
 
-        {filtered.length === 0 ? (
-          <EmptyState onCreate={() => setCreateOpen(true)} hasQuery={query.length > 0} />
-        ) : (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((org) => (
-              <OrgCard key={org.id} org={org} />
-            ))}
-          </div>
-        )}
-      </main>
+      {filtered.length === 0 ? (
+        <EmptyState onCreate={() => setCreateOpen(true)} hasQuery={query.length > 0} />
+      ) : (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((org) => (
+            <OrgCard key={org.id} org={org} />
+          ))}
+        </div>
+      )}
 
-      <CreateOrgDialog open={createOpen} onOpenChange={setCreateOpen} onCreate={handleCreate} />
-    </div>
+      <CreateOrgDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreate={(o) => {
+          orgsStore.add(o);
+          toast.success("Organization created", { description: `${o.name} is ready to go.` });
+          setCreateOpen(false);
+        }}
+      />
+    </main>
   );
 }
 
 function OrgCard({ org }: { org: Organization }) {
+  const lead = org.directors[0];
   return (
-    <div className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/30">
+    <div className="group relative flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/30">
       <div className="flex items-start justify-between">
         <div className="flex size-10 items-center justify-center rounded-lg border border-border">
           <Building2 className="size-5" />
@@ -181,8 +132,11 @@ function OrgCard({ org }: { org: Organization }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>View details</DropdownMenuItem>
-            <DropdownMenuItem>Rename</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/admin/$orgId" params={{ orgId: org.id }}>
+                View details
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive">
               Archive
@@ -191,28 +145,45 @@ function OrgCard({ org }: { org: Organization }) {
         </DropdownMenu>
       </div>
 
-      <h3 className="mt-4 font-display text-lg font-normal leading-tight">{org.name}</h3>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Created {formatRelative(org.createdAt)}
-      </p>
+      <Link
+        to="/admin/$orgId"
+        params={{ orgId: org.id }}
+        className="mt-4 outline-none focus-visible:underline"
+      >
+        <h3 className="font-display text-lg font-normal leading-tight">{org.name}</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Created {formatRelative(org.createdAt)}
+        </p>
+      </Link>
 
       <div className="mt-4 border-t border-border pt-4">
         <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-          Managing director
+          Managing directors
         </p>
-        <div className="mt-2 space-y-1.5">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="size-3.5 text-muted-foreground" />
-            <span>{org.directorName}</span>
+        <div className="mt-2 flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="truncate text-sm">
+              {lead ? lead.name : <span className="text-muted-foreground">None assigned</span>}
+            </p>
+            {lead ? (
+              <p className="truncate text-xs text-muted-foreground">
+                {lead.dial} {lead.phone}
+              </p>
+            ) : null}
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Phone className="size-3.5" />
-            <span>
-              {org.directorDial} {org.directorPhone}
-            </span>
+          <div className="shrink-0 text-xs text-muted-foreground">
+            {org.directors.length > 1 ? `+${org.directors.length - 1} more` : null}
           </div>
         </div>
       </div>
+
+      <Link
+        to="/admin/$orgId"
+        params={{ orgId: org.id }}
+        className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-foreground opacity-0 transition-opacity group-hover:opacity-100"
+      >
+        Manage <ArrowRight className="size-3" />
+      </Link>
     </div>
   );
 }
@@ -273,10 +244,16 @@ function CreateOrgDialog({
     onCreate({
       id: crypto.randomUUID(),
       name: name.trim(),
-      directorName: director.trim(),
-      directorDial: country.dial,
-      directorPhone: phone.trim(),
       createdAt: Date.now(),
+      directors: [
+        {
+          id: crypto.randomUUID(),
+          name: director.trim(),
+          dial: country.dial,
+          phone: phone.trim(),
+          role: "Managing Director",
+        },
+      ],
     });
   };
 
@@ -284,9 +261,7 @@ function CreateOrgDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl font-light">
-            New organization
-          </DialogTitle>
+          <DialogTitle className="font-display text-2xl font-light">New organization</DialogTitle>
           <DialogDescription>
             Add an organization and assign its managing director.
           </DialogDescription>
@@ -303,7 +278,6 @@ function CreateOrgDialog({
               className="h-10"
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="director">Managing director</Label>
             <Input
@@ -314,7 +288,6 @@ function CreateOrgDialog({
               className="h-10"
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="phone">Mobile number</Label>
             <div className="flex gap-2">
@@ -332,12 +305,7 @@ function CreateOrgDialog({
           </div>
 
           <DialogFooter className="mt-2 gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="h-10"
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-10">
               Cancel
             </Button>
             <Button type="submit" className="h-10">
@@ -348,131 +316,4 @@ function CreateOrgDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function SettingsMenu({ onSignOut }: { onSignOut: () => void }) {
-  // Frontend-only demo profile
-  const [name, setName] = React.useState("Alex Morgan");
-  const [dial, setDial] = React.useState("+1");
-  const [phone, setPhone] = React.useState("415 555 0100");
-  const [editing, setEditing] = React.useState(false);
-  const initials = name
-    .split(" ")
-    .map((s) => s[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-9 rounded-full border border-border">
-          <Settings className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 p-0">
-        <div className="flex items-center gap-3 p-4">
-          <div className="flex size-10 items-center justify-center rounded-full bg-foreground text-xs font-medium text-background">
-            {initials || "AD"}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{name || "Platform admin"}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {dial} {phone}
-            </p>
-          </div>
-        </div>
-
-        <DropdownMenuSeparator className="my-0" />
-
-        {!editing ? (
-          <div className="p-2">
-            <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-              Account
-            </DropdownMenuLabel>
-            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditing(true); }}>
-              <User className="size-4" />
-              Edit profile
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="size-4" />
-              Preferences
-            </DropdownMenuItem>
-          </div>
-        ) : (
-          <div className="space-y-3 p-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-name" className="text-xs">
-                Name
-              </Label>
-              <Input
-                id="admin-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Mobile number</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={dial}
-                  onChange={(e) => setDial(e.target.value)}
-                  className="h-9 w-16"
-                />
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-9 flex-1"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  toast.success("Profile updated");
-                  setEditing(false);
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <DropdownMenuSeparator className="my-0" />
-
-        <div className="p-2">
-          <DropdownMenuItem
-            onSelect={onSignOut}
-            className="gap-2 text-destructive focus:text-destructive"
-          >
-            <LogOut className="size-4" />
-            Sign out
-          </DropdownMenuItem>
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function formatRelative(ts: number) {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
 }
