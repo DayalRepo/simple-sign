@@ -43,7 +43,7 @@ interface Organization {
   createdAt: number;
 }
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin/")({
   head: () => ({
     meta: [
       { title: "Admin — Orbit AI" },
