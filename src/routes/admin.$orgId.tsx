@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ArrowLeft,
