@@ -53,7 +53,7 @@ function VerifyOtpPage() {
       return;
     }
     toast.success("You're verified", { description: "Welcome to Orbit AI." });
-    navigate({ to: "/sign-in" });
+    navigate({ to: "/admin" });
   };
 
   const resend = () => {
